@@ -1,0 +1,22 @@
+# Visual Studio
+.vs/
+**/x64/
+**/Debug/
+**/Release/
+*.user
+*.suo
+*.VC.db
+*.VC.VC.opendb
+
+# Compiler and debugger output
+*.obj
+*.o
+*.pdb
+*.ilk
+*.log
+
+# Local data files; keep the checked-in demo CSV
+GridWise_Package_Final/electricity.csv
+GridWise_Package_Final/electricity_copy.csv
+# Shortcuts can contain author-specific absolute paths
+*.lnk

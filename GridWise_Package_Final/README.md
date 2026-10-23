@@ -1,57 +1,9 @@
-# GridWise 社区用电分析平台
+# GridWise Windows 演示包
 
-## 一键运行
+详细项目说明、源码编译方式、数据说明和许可证见仓库根目录的 [README.md](../README.md)。
 
-双击 `GridWise.lnk`，程序会启动本地 HTTP 服务，并自动打开默认浏览器访问：
+## 运行
 
-```text
-http://127.0.0.1:8000
-```
+在 Windows x64 上双击 `GridWise.exe`，然后打开 `http://127.0.0.1:8000`。保持 `web` 文件夹和 `electricity_demo.csv` 与程序位于同一目录。
 
-也可以直接双击 `GridWise.exe`。
-
-程序运行期间会保持后端服务运行。关闭程序时，在控制台窗口按 `Ctrl+C`。
-
-## 默认账号
-
-```text
-管理员：admin / admin123
-普通用户：user / user123
-```
-
-## 发布包结构
-
-```text
-GridWise_Package_Final/
-├── GridWise.exe              # x64 Release 可执行文件
-├── GridWise.lnk              # 双击后启动并打开网页的快捷方式
-├── electricity_demo.csv      # 运行数据，增删改后写回此文件
-├── web/                      # 前端网页文件
-│   ├── index.html
-│   ├── app.js
-│   └── style.css
-└── src/                      # 主要 C 源码和头文件
-```
-
-本发布包没有复制 Visual Studio 工程文件、`.vs` 目录、`x64` 目录、`.sln` 文件或 `.vcxproj` 文件。
-
-## 运行要求
-
-- Windows 64 位系统；
-- 8000 端口没有被其他程序占用；
-- `GridWise.exe`、`electricity_demo.csv` 和 `web` 文件夹保持在同一目录；
-- 如果浏览器没有自动打开，可以手动访问 `http://127.0.0.1:8000`。
-
-## 数据说明
-
-程序启动时读取 `electricity_demo.csv`。管理员新增、修改或删除记录后，系统会把数据保存回该文件，请不要在程序运行时移动或删除它。
-
-## 重新编译
-
-使用 Visual Studio Developer Command Prompt，在 `src` 目录执行：
-
-```text
-cl /nologo /O2 /MD /utf-8 /DWIN32_LEAN_AND_MEAN *.c /Fe:"..\GridWise.exe" /link ws2_32.lib shell32.lib
-```
-
-编译目标为 x64 Release。
+演示账号：管理员 `admin / admin123`；普通用户 `user / user123`。账号是公开的硬编码演示凭据，只用于本机测试。程序会将管理员修改保存到 `electricity_demo.csv`。
