@@ -101,17 +101,27 @@ community,household,year,month,peak_kwh,valley_kwh,bill
 
 ## 4. 常见改造位置
 
-| 目标 | 文件位置 | 是否重新编译 |
+下面列出复用项目时最常需要调整的内容。路径均相对于 `GridWise_Package_Final` 文件夹。
+
+| 要调整的内容 | 修改位置 | 修改后操作与关联项 |
 | --- | --- | --- |
-| 换小区、住户、年月和用电量 | `GridWise_Package_Final/electricity_demo.csv` | 不需要，重启程序 |
-| 修改演示账号或密码 | `GridWise_Package_Final/src/auth.c` 中的 `demo_users` | 需要 |
-| 修改峰谷电价 | `GridWise_Package_Final/src/main.c` 中 `data.rate` 的赋值 | 需要；CSV 的 `bill` 也要同步重算 |
-| 修改推荐权重 | `GridWise_Package_Final/src/main.c` 中的 `recommendation_weights` | 需要 |
-| 修改最大记录数 | `GridWise_Package_Final/src/model.h` 中的 `MAX_RECORDS` | 需要；记录数组会随上限增大 |
-| 修改后端监听地址/端口 | `GridWise_Package_Final/src/main.c` 中 `web_server_start()` 的地址 | 需要 |
-| 修改页面文字和菜单 | `GridWise_Package_Final/web/index.html`、`app.js` | 刷新网页即可 |
-| 修改页面颜色 | `GridWise_Package_Final/web/style.css` 的 `:root` 变量 | 刷新网页即可 |
-| 修改每页查询条数 | `src/web_server.c` 的 `query_page()` 调用和 `web/app.js` 的 `PAGE_SIZE` | 后端修改需编译；两端数值要一致 |
+| 小区、住户、年月、峰谷电量 | `electricity_demo.csv` | 保留七列和表头；重启程序。手工改数据时同步重算 `bill`。 |
+| 模拟数据的小区名、户数、起始年份 | 调用 `generate_csv()` 的代码 | 传入小区数组、数量、户数和起始年；每小区至少 50 户。 |
+| 模拟用电量范围、峰时占比 | `src/data_generator.c` | 修改 `100 + rand() % 301` 和 `40 + rand() % 31`；需重新编译并重新生成 CSV。 |
+| 管理员/普通用户账号和密码 | `src/auth.c` 的 `demo_users` | 重新编译；这是硬编码演示账号。 |
+| 峰时和谷时电价 | `src/main.c` 中 `data.rate` 赋值 | 重新编译；同步更新现有 CSV 的 `bill`，以及生成器使用的 `Price`。 |
+| 电费计价公式 | `src/billing.c` 的 `billing_calculate()` | 当前公式为峰电量×峰价 + 谷电量×谷价；改公式后，还需检查 `src/data_generator.c` 和后端新增/修改记录的计费逻辑，并重算 CSV。 |
+| 四项推荐指标权重 | `src/main.c` 的 `recommendation_weights` | 顺序必须与下方指标表一致；重新编译。权重非负且总和大于 0，程序会归一化。 |
+| 推荐指标或计算方法 | `src/recommendation.c` | 修改指标后，需同步检查 `model.h` 的指标数量、`main.c` 权重数组及下方指标说明；重新编译。 |
+| 最大记录数 | `src/model.h` 的 `MAX_RECORDS` | 重新编译；`SystemData` 是固定长度数组，增大上限会增加内存占用。网页另有 40,000 条读取上限，见下文。 |
+| 网页最多读取的记录数 | `web/app.js` 的 `MAX_FRONTEND_RECORDS` | 与后端 `MAX_RECORDS` 分别设置；报表/排序从前端已读取记录计算，网页上限小于 CSV 记录数时结果可能不完整。 |
+| 每页显示条数 | `src/web_server.c` 的 `query_page()` 调用和 `web/app.js` 的 `PAGE_SIZE` | 两处数值保持一致；改后端需重新编译，改网页需刷新。 |
+| 服务地址和端口 | `src/main.c` 的 `web_server_start()` 与 `open_frontend()` | 两处地址一起改并重新编译；端口还需未被其他程序占用。 |
+| 程序使用的 CSV 文件名 | `src/main.c` 的 `file_load_records()` 和 `web_server_start()` | 两处文件名要一致；运行包中的 CSV 文件也要改成对应名称。 |
+| 网页文字、菜单和页面内容 | `web/index.html`、`web/app.js` | 只改显示内容时刷新网页；新增页面时同步菜单、页面区域和 `pageTitles`。 |
+| 网页配色、布局 | `web/style.css` | 修改 `:root` 颜色变量或样式，刷新网页查看。 |
+| HTTP 路由和请求/响应字段 | `src/web_server.c`、`src/web_server.h`、`web/app.js` | 前后端路径、参数名和 JSON 字段必须一致；C 代码需重新编译。 |
+| CSV 字段、数据结构 | `src/model.h`、`src/file_manager.c`、`src/web_server.c`、`web/app.js` | 这是跨模块改动：同步更新结构体、CSV 读写、接口 JSON 和网页字段，再重新编译并检查旧 CSV 兼容性。 |
 
 ### 修改账号、价格和权重
 
@@ -132,20 +142,76 @@ static const double recommendation_weights[EXPANSION_INDICATOR_COUNT] = {
 };
 ```
 
-程序会按权重总和归一化，因此可以提供任意非负比例，但总和必须大于 0。
+四项顺序为：峰电年增长率、峰值月同比增长率、峰谷比、户均月峰电量。程序会按权重总和归一化，因此可以提供任意非负比例，但总和必须大于 0。前端提交的扩容数量和最低电费是筛选条件，不会覆盖这里配置的算法权重。
+
+改变电价时，电费仍按下面公式计算：
+
+```text
+bill = peak_kwh × peak_price + valley_kwh × valley_price
+```
+
+`billing.c` 提供该公式的计算函数。修改峰谷单价时，先改 `main.c` 的 `data.rate`，再用同一组单价重新计算 CSV 的 `bill`。生成器会根据传入的 `Price` 自动计算新记录的电费。若要从峰谷两档扩展成分时段、阶梯电价等规则，当前 `ElectricBill` 只保存峰、谷两类电量，需要同时设计新的数据字段，并修改计费、CSV、接口和网页，不能只改一个单价。
 
 ### 修改模拟数据生成规则
 
-`src/data_generator.c` 的 `generate_csv()` 可生成多个小区、每户连续两年的模拟数据：
+`src/data_generator.c` 中的 `generate_csv()` 接收文件名、小区名称数组、小区数量、每小区户数、起始年份和电价，生成多个小区每户连续两年的月用电 CSV。返回生成记录数；参数不合要求或文件操作失败时返回 `0`。
+
+例如，可在单独的测试程序或临时测试函数中这样调用：
 
 ```c
-generate_csv(filename, communities, community_count,
-             household_count, start_year, price);
+#include <stdio.h>
+#include <stddef.h>
+#include <stdlib.h>
+#include <time.h>
+#include "data_generator.h"
+
+int main(void)
+{
+    const char communities[][MODEL_NAME_LENGTH] = {
+        "幸福小区", "阳光小区"
+    };
+    Price price = { 0.6, 0.3 };
+    size_t written;
+
+    srand((unsigned)time(NULL));  /* 每次运行使用不同的随机序列 */
+    written = generate_csv(
+        "electricity_generated.csv",
+        communities,
+        2,       /* 小区数量 */
+        50,      /* 每个小区的住户数，至少 50 */
+        2024,    /* 起始年份，生成 2024 和 2025 */
+        price);
+
+    printf("生成记录数：%zu\n", written);
+    return written == 0 ? 1 : 0;
+}
 ```
 
-当前规则为每小区至少 50 户、每户 24 条记录、总记录数不超过 `MAX_RECORDS`；总电量范围 100–400 kWh，峰时占比 40%–70%，住户编号按 `H001`、`H002` 生成。生成器以写入模式打开文件，会覆盖同名 CSV。
+这是独立测试程序的示例，需与 `src/data_generator.c` 一起编译运行；不要把第二个 `main()` 直接粘贴到现有项目。相对文件名 `electricity_generated.csv` 会写到程序当前工作目录。
 
-**注意：当前正常启动流程不会自动调用 `generate_csv()`**，`main()` 启动时直接读取 `electricity_demo.csv`。只修改生成器规则不会改变正在运行的数据；若要用生成器生成新 CSV，需要在明确的生成流程中调用它，或直接按上一节的格式准备 CSV。
+在 Visual Studio 中测试时，新建一个临时 C 控制台项目，把这段示例作为唯一的 `main()`，再把 `src/data_generator.c` 加入项目，并把 `src` 设为头文件搜索目录。不要同时编译原项目的 `main.c`，否则会出现两个 `main()`。
+
+上述调用生成 `2 × 50 × 24 = 2,400` 条记录。每个小区住户编号从 `H001` 开始；每户有 24 条记录，月份为起始年 1 月至下一年 12 月。每月总电量随机为 100–400 kWh，峰时占比随机为 40%–70%，谷时电量为剩余部分，电费按传入电价计算。调用 `srand()` 是为了让每次运行生成不同随机序列；不调用时，随机序列通常会重复。
+
+总记录数必须满足 `小区数量 × 每小区户数 × 24 <= MAX_RECORDS`，当前 `MAX_RECORDS` 为 50,000。生成器用写入模式创建文件，会覆盖同名 CSV，因此示例刻意写入 `electricity_generated.csv`，保留原始演示数据。
+
+**使用生成数据的步骤：**
+
+1. 先备份 `electricity_demo.csv`，并在单独的临时测试程序中调用生成器，输出到新文件名，例如 `electricity_generated.csv`。
+2. 检查生成文件的表头、行数、小区名和住户编号。成功返回值应等于预期记录数，例如上例为 2,400。
+3. 若希望主程序读取生成数据，停止服务后，将新文件复制/改名为 `electricity_demo.csv`；或者同时修改 `src/main.c` 中 `file_load_records()` 与 `web_server_start()` 的文件名，然后重新编译。两处必须使用同一个 CSV 名称。
+4. 若修改了单价，生成器调用中的 `Price` 必须与 `main.c` 中的电价一致。
+
+当前正常启动流程不会自动调用 `generate_csv()`，而是直接读取 `electricity_demo.csv`。只改生成器的随机范围不会自动改变演示 CSV。若打算每次启动都生成数据，应明确把调用放进 `main()` 的读取流程之前；这会重新覆盖生成目标文件，通常不适合保留用户已编辑的记录。
+
+### 修改记录容量和查询分页
+
+目前 `src/model.h` 的 `MAX_RECORDS` 是 50,000；`SystemData` 按该值静态分配记录数组。网页 `web/app.js` 的 `MAX_FRONTEND_RECORDS` 是 40,000，`PAGE_SIZE` 是 50；后端 `src/web_server.c` 的查询分页大小也是 50。若要提高可用数据量，应同时考虑：
+
+1. 提高 `MAX_RECORDS` 并重新编译；
+2. 提高 `MAX_FRONTEND_RECORDS`，否则前端报表、排序等最多只读取该上限内的记录；
+3. 保证实际 CSV 记录数不超过 `MAX_RECORDS`，并确认电脑内存足够；
+4. 若改每页条数，同步改后端和前端的 `50`。分页数值与数据总上限是两种不同设置。
 
 ### 修改前端页面
 
