@@ -1,127 +1,210 @@
 # 小区用电统计与扩容推荐系统 GridWise
 
-GridWise 是一个用 C 语言实现的课程项目，使用 CSV 文件保存用电记录，通过本地 HTTP 服务和网页界面提供查询、统计、排序与小区扩容推荐。项目内附有模拟数据，拿到代码后可以先照下面的示例登录和查询，再替换成自己的数据。
+GridWise 是一个基于 C 语言、CSV 和 Mongoose HTTP 服务的课程演示项目。它管理家庭月度用电记录，生成小区统计报表，并根据四项用电指标和配置权重计算扩容优先级。
 
-> **项目用途：课程演示。** 账号写在源代码中，HTTP Basic 认证在普通 HTTP 连接上不加密。请只在本机或受控测试环境运行，不要直接暴露到公网，也不要把真实居民信息提交到 GitHub。
+> **运行提醒：**演示账号写在源码中；HTTP Basic 认证在普通 HTTP 连接上不加密。请只在本机或受控测试环境运行，不要直接暴露到公网。仓库中的数据是模拟数据，不要把真实居民信息提交到 GitHub。
 
-## 先运行并查询一条现成数据
+## 1. 直接运行和第一次查询
 
-### 启动
+### 启动程序
 
-在 Windows x64 上进入 `GridWise_Package_Final` 文件夹，双击 `GridWise.exe`。程序会启动本地服务并尝试打开浏览器；如果没有自动打开，在浏览器访问：
+在 Windows x64 上打开 `GridWise_Package_Final` 文件夹，双击 `GridWise.exe`。程序会启动本地 HTTP 服务并尝试打开默认浏览器。若浏览器没有自动打开，访问：
 
 ```text
 http://127.0.0.1:8000
 ```
 
-保持 `GridWise.exe`、`electricity_demo.csv` 和 `web` 文件夹之间的相对位置不变。服务运行时会打开控制台窗口，按 `Ctrl+C` 停止。
+服务运行期间会保留控制台窗口；在控制台按 `Ctrl+C` 停止。请让 `GridWise.exe`、`electricity_demo.csv` 和 `web` 文件夹保持在同一目录结构中。仓库不再提供快捷方式文件，因为快捷方式会绑定创建者电脑上的路径。
 
-### 登录
+### 演示账号
 
-登录页使用以下演示账号。它们是公开的固定测试账号，不要把它们当作安全凭据：
-
-| 角色 | 账号 | 密码 | 可做的事 |
+| 角色 | 账号 | 密码 | 权限 |
 | --- | --- | --- | --- |
-| 管理员 | `admin` | `admin123` | 查询、统计、排序、推荐，并新增/修改/删除用电记录 |
-| 普通用户 | `user` | `user123` | 查询、统计、排序和查看推荐 |
+| 管理员 | `admin` | `admin123` | 查询、报表、排序、推荐，以及新增/修改/删除记录 |
+| 普通用户 | `user` | `user123` | 查询、报表、排序和查看推荐 |
 
-### 查询示例
+这是公开源代码中的演示凭据，只适合本机体验。
 
-仓库里的演示数据共 **12,000 条**：小区 `小区01` 到 `小区10`；每个小区有住户 `H001` 到 `H050`；时间覆盖 **2024 年 1 月至 2025 年 12 月**，每户每月一条记录。
+### 可直接使用的查询值
 
-登录后选择左侧 **用电查询**，输入下面这些值，再点“查询记录”：
+仓库附带的 `GridWise_Package_Final/electricity_demo.csv` 有 **12,000 条模拟记录**：10 个小区（`小区01` 至 `小区10`），每个小区 50 户（`H001` 至 `H050`），覆盖 2024 年 1 月至 2025 年 12 月，每户每月一条记录。
 
-| 页面输入项 | 示例值 |
+登录后点击左侧 **用电查询**，输入以下值并点击“查询记录”：
+
+| 查询字段 | 输入值 |
 | --- | --- |
 | 小区名称 | `小区01` |
 | 住户 | `H001` |
 | 年份 | `2024` |
 | 月份 | `1` |
 
-这条数据在 CSV 中对应：
+对应 CSV 记录如下，查询结果应能看到同样的峰谷电量和电费：
 
 ```csv
 小区01,H001,2024,1,87.42,53.58,68.53
 ```
 
-小区名和住户名需要与 CSV 完全一致。若查不到，先打开 `GridWise_Package_Final/electricity_demo.csv`，查看前两列和年月；空着住户、年份或月份可以扩大筛选范围。统计报表和排序需要填写小区名称，年份可留空；扩容推荐按当前 CSV 中的所有小区计算。
+名称按文本精确匹配。若无结果，请先在 CSV 中查找 `community`、`household`、`year` 和 `month` 的实际值。查询页面必须填写小区名称；住户、年份、月份可以留空以扩大查询范围。报表和排序也需要填写小区名称，年份可留空。扩容推荐使用当前数据中的小区，不需要输入某个住户。
 
-## 用自己的数据替换演示数据
+## 2. CSV 数据格式与替换方法
 
-1. 先关闭程序，并备份 `GridWise_Package_Final/electricity_demo.csv`。
-2. 用支持 UTF-8 的文本编辑器或表格软件打开 CSV。保留第一行表头和列顺序：
+每条记录表示某个住户某个月的用电情况。CSV 表头必须保留，字段顺序不能改变：
 
-   ```csv
-   community,household,year,month,peak_kwh,valley_kwh,bill
-   ```
+```csv
+community,household,year,month,peak_kwh,valley_kwh,bill
+```
 
-3. 用自己的模拟或脱敏数据替换后续记录。每行表示一户在一个月的用电情况，例如：
+示例：
 
-   ```csv
-   幸福小区,楼栋1-101,2024,1,120.50,80.25,96.38
-   ```
+```csv
+community,household,year,month,peak_kwh,valley_kwh,bill
+幸福小区,1号楼101,2024,1,120.50,80.25,96.38
+幸福小区,1号楼101,2024,2,115.00,75.00,91.50
+```
 
-4. 每户每月只放一条记录；同一小区、住户、年份、月份不能重复。月份必须为 1–12，年份不能为 0，峰时和谷时电量及电费不能为负数。小区名和住户名不要包含逗号或换行，以免破坏 CSV 列结构。
-5. `bill` 列也必须填写。当前 `main.c` 默认峰时电价为 0.6 元/kWh、谷时电价为 0.3 元/kWh，电费按 `峰时电量 × 0.6 + 谷时电量 × 0.3` 计算并保留两位小数。网页中管理员录入记录时由后端计算电费；手动改 CSV 时需要自己写对这一列。
-6. 保存文件后重新启动程序。若数据格式错误、记录重复或记录超过容量，程序可能无法加载；此时恢复备份并检查表头、字段数量和每行数据。
+字段说明：
 
-系统当前最多保存 **50,000 条**记录，定义在 `GridWise_Package_Final/src/model.h` 的 `MAX_RECORDS`。替换数据后，先从 CSV 中选一个确实存在的小区、住户和年月，按上面的查询流程确认可查。
+| 字段 | 含义与要求 |
+| --- | --- |
+| `community` | 小区名称；同一小区每条记录必须使用相同拼写 |
+| `household` | 住户名称或编号；与小区、年份、月份共同确定一条记录 |
+| `year` | 年份整数，不能为 0 |
+| `month` | 月份整数，范围 1–12 |
+| `peak_kwh` | 峰时用电量，不能为负数 |
+| `valley_kwh` | 谷时用电量，不能为负数 |
+| `bill` | 电费，不能为负数；手动编辑 CSV 时按当前电价填写 |
 
-> 公开仓库只保留模拟数据。若使用真实业务数据，请只在本地运行并做好脱敏，绝不要提交真实姓名、地址、电话、账号或账单。
+### 用自己的数据替换
 
-## 从源码编译
+1. 关闭程序，备份 `GridWise_Package_Final/electricity_demo.csv`。
+2. 用支持 UTF-8 的文本编辑器或表格软件编辑 CSV，保留表头和七列顺序。
+3. 每个住户每个月写一行；同一“小区 + 住户 + 年 + 月”不能有重复记录。名称不要含逗号或换行，以免破坏 CSV 分列。
+4. 默认峰时电价为 0.6 元/kWh、谷时电价为 0.3 元/kWh，电费公式为：`峰时电量 × 0.6 + 谷时电量 × 0.3`，结果保留两位小数。例：`120.50 × 0.6 + 80.25 × 0.3 = 96.38`。
+5. 保存后重新启动程序，再使用 CSV 中确实存在的小区、住户和年月查询。
 
-需要 Windows x64 和 MSVC。打开 **x64 Native Tools Command Prompt for Visual Studio**，切换到仓库中的 `GridWise_Package_Final\src`，执行：
+管理员在网页中新增或修改记录时，后端会按当前电价计算电费。手动编辑 CSV 时，必须自己正确填写 `bill`。程序会把管理员的新增、修改和删除写回正在使用的 CSV；如果改坏或覆盖演示数据，可用备份恢复。
+
+> 仓库的模拟数据用于体验功能。若换成真实数据，请仅在本地使用并先脱敏；不要把真实姓名、地址、电话、账号或账单提交到仓库。
+
+## 3. 扩容推荐需要什么数据
+
+当前推荐算法会自动选取数据中的最近两个年份。每个小区需要这两年各 12 个月都齐全，缺少任一月份的小区不会参加推荐。例如演示数据使用 2024 和 2025 两个完整年份。
+
+当前四项指标依次为：
+
+1. 峰电年增长率；
+2. 第二年峰电量最大月份相对第一年同月的增长率；
+3. 两年峰时总电量与谷时总电量之比；
+4. 户均月峰电量。
+
+系统先对指标做正向 min-max 归一化，再按配置权重加权并排序。结果是课程项目的参考排序，不应直接作为真实电网扩容决策依据。
+
+## 4. 常见改造位置
+
+| 目标 | 文件位置 | 是否重新编译 |
+| --- | --- | --- |
+| 换小区、住户、年月和用电量 | `GridWise_Package_Final/electricity_demo.csv` | 不需要，重启程序 |
+| 修改演示账号或密码 | `GridWise_Package_Final/src/auth.c` 中的 `demo_users` | 需要 |
+| 修改峰谷电价 | `GridWise_Package_Final/src/main.c` 中 `data.rate` 的赋值 | 需要；CSV 的 `bill` 也要同步重算 |
+| 修改推荐权重 | `GridWise_Package_Final/src/main.c` 中的 `recommendation_weights` | 需要 |
+| 修改最大记录数 | `GridWise_Package_Final/src/model.h` 中的 `MAX_RECORDS` | 需要；记录数组会随上限增大 |
+| 修改后端监听地址/端口 | `GridWise_Package_Final/src/main.c` 中 `web_server_start()` 的地址 | 需要 |
+| 修改页面文字和菜单 | `GridWise_Package_Final/web/index.html`、`app.js` | 刷新网页即可 |
+| 修改页面颜色 | `GridWise_Package_Final/web/style.css` 的 `:root` 变量 | 刷新网页即可 |
+| 修改每页查询条数 | `src/web_server.c` 的 `query_page()` 调用和 `web/app.js` 的 `PAGE_SIZE` | 后端修改需编译；两端数值要一致 |
+
+### 修改账号、价格和权重
+
+账号定义在 `src/auth.c` 的 `demo_users` 数组。更改账号或密码后，重新编译程序。当前账号硬编码且密码未安全存储，不要用真实密码。
+
+电价在 `src/main.c` 的 `main()` 中设置：
+
+```c
+data.rate.peak_price = 0.6;
+data.rate.valley_price = 0.3;
+```
+
+权重数组在同一个文件中，顺序必须对应上面列出的四项指标：
+
+```c
+static const double recommendation_weights[EXPANSION_INDICATOR_COUNT] = {
+    0.25, 0.25, 0.25, 0.25
+};
+```
+
+程序会按权重总和归一化，因此可以提供任意非负比例，但总和必须大于 0。
+
+### 修改模拟数据生成规则
+
+`src/data_generator.c` 的 `generate_csv()` 可生成多个小区、每户连续两年的模拟数据：
+
+```c
+generate_csv(filename, communities, community_count,
+             household_count, start_year, price);
+```
+
+当前规则为每小区至少 50 户、每户 24 条记录、总记录数不超过 `MAX_RECORDS`；总电量范围 100–400 kWh，峰时占比 40%–70%，住户编号按 `H001`、`H002` 生成。生成器以写入模式打开文件，会覆盖同名 CSV。
+
+**注意：当前正常启动流程不会自动调用 `generate_csv()`**，`main()` 启动时直接读取 `electricity_demo.csv`。只修改生成器规则不会改变正在运行的数据；若要用生成器生成新 CSV，需要在明确的生成流程中调用它，或直接按上一节的格式准备 CSV。
+
+### 修改前端页面
+
+- 页面标题、菜单文字和页面内容在 `web/index.html`；
+- 页面切换与接口调用在 `web/app.js`；
+- 颜色变量和布局样式在 `web/style.css`；
+- 新增菜单时，菜单按钮的 `data-page` 要与页面区域的 `data-view` 对应；同时在 `app.js` 的 `pageTitles` 中登记页面标题。
+
+目前报表和排序没有独立后端 API：网页从 `/api/records` 分页获取筛选后的记录，再在前端汇总。后端每页默认 50 条，前端 `PAGE_SIZE` 也为 50；修改时两边要一致。
+
+### 扩展 API
+
+当前接口路由定义在 `src/web_server.c` 的 `http_event_handler()`：
+
+| 方法 | 路径 | 用途 |
+| --- | --- | --- |
+| `GET` | `/api/health` | 服务健康检查 |
+| `POST` | `/api/login` | 登录 |
+| `GET` | `/api/records` | 分页查询记录 |
+| `POST` | `/api/records` | 管理员新增记录 |
+| `PUT` | `/api/records` | 管理员修改记录 |
+| `DELETE` | `/api/records` | 管理员删除记录 |
+| `POST` | `/api/recommend` | 生成扩容推荐 |
+
+目前**没有** `/api/stats` 接口。新增 API 时，需要在 `http_event_handler()` 添加路由分支，在 `web_server.c` 实现请求校验和 JSON 响应，并在 `web/app.js` 添加调用；需要登录的接口要沿用现有权限检查。统计逻辑应调用 `statistics.c`，不要在 HTTP 路由中重复实现统计。
+
+## 5. 从源码编译
+
+需要 Windows x64 和 MSVC。打开 **x64 Native Tools Command Prompt for Visual Studio**，进入 `GridWise_Package_Final\src`，执行：
 
 ```bat
 cl /nologo /O2 /MD /utf-8 /DWIN32_LEAN_AND_MEAN *.c /Fe:"..\GridWise.exe" /link ws2_32.lib shell32.lib
 ```
 
-编译完成后，在 `GridWise_Package_Final` 目录运行 `GridWise.exe`。不要把可执行文件单独移出目录，因为程序需要旁边的网页文件和 CSV 文件。
+随后从 `GridWise_Package_Final` 目录运行 `GridWise.exe`，不要单独移动可执行文件。当前代码使用 `fopen_s`、`sscanf_s`、`strcpy_s` 等 MSVC 函数；GCC/Clang 不能直接按此命令编译。
 
-## 项目文件说明
+## 6. 目录结构
 
 ```text
-GridWise_Package_Final/
-├── src/
-│   ├── model.h              公共数据结构与记录容量
-│   ├── main.c               电价、推荐权重和系统启动流程
-│   ├── auth.c               演示账号和角色权限
-│   ├── data_generator.c     模拟 CSV 生成函数
-│   ├── file_manager.c       CSV 读取和保存
-│   ├── data_manager.c       记录校验及增删改
-│   ├── billing.c            峰谷电费计算
-│   ├── statistics.c         家庭与小区统计
-│   ├── query.c              记录筛选查询
-│   ├── sorting.c            统计结果排序
-│   ├── recommendation.c     扩容优先级评分和排序
-│   ├── web_server.c         HTTP API 与请求处理
-│   └── mongoose.c/.h        Mongoose 网络库
-├── web/                     网页、脚本和样式
-├── electricity_demo.csv     可直接查询的模拟用电数据
-└── GridWise.exe             Windows x64 演示程序
+.
+├── README.md
+├── LICENSE
+├── CONTRIBUTING.md
+├── SECURITY.md
+├── THIRD_PARTY_NOTICES.md
+└── GridWise_Package_Final/
+    ├── GridWise.exe
+    ├── electricity_demo.csv
+    ├── src/       C 源码、头文件和 Mongoose
+    └── web/       HTML、JavaScript 和 CSS
 ```
 
-## 常见修改位置
+## 7. 已知限制和许可证
 
-| 想调整的内容 | 修改位置 | 修改后是否需要重新编译 |
-| --- | --- | --- |
-| 小区、住户、年份、月份和用电量 | 替换 `electricity_demo.csv` | 否，重启程序即可 |
-| 管理员/普通用户的演示账号 | `src/auth.c` 中的 `demo_users` | 是 |
-| 峰谷电价 | `src/main.c` 中 `data.rate` 的赋值 | 是；手动准备的 CSV 电费也要按新电价重算 |
-| 推荐指标权重 | `src/main.c` 中 `recommendation_weights` | 是 |
-| 最大记录数 | `src/model.h` 中 `MAX_RECORDS` | 是；数组内存也会随之增大 |
-| 网页文案和布局 | `web/index.html`、`web/app.js`、`web/style.css` | 通常否，刷新网页即可 |
-| HTTP 端口 | `src/main.c` 中服务地址及自动打开浏览器的地址 | 是；两处地址要保持一致 |
+- 仅提供 Windows/MSVC 编译方式。
+- 演示账号硬编码，Basic 认证在普通 HTTP 上不加密。
+- 每页默认 50 条；报表和排序由前端取回记录后汇总。
+- `sorting.c` 使用冒泡排序，复杂度为 O(n²)，当前网页排序使用前端聚合结果排序。
+- 推荐只对最近两年数据完整的小区评分。
+- 模拟数据生成器要求每个小区至少 50 户，且会覆盖目标文件。
 
-## 已知限制
-
-- 当前只提供 Windows/MSVC 编译方式，代码使用 MSVC 安全 CRT 函数。
-- 账号是演示用途的硬编码账号，密码没有安全存储。
-- HTTP Basic 认证不会加密普通 HTTP 流量；默认只监听 `127.0.0.1:8000`。
-- `electricity_demo.csv` 会被管理员操作写回，演示前建议备份。
-- 仓库目前没有自动化构建和测试流程。
-
-## 许可证与贡献
-
-项目采用 GNU GPL-2.0-only，完整文本见 [LICENSE](LICENSE)。Mongoose 的版本和许可说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。贡献方式见 [CONTRIBUTING.md](CONTRIBUTING.md)，安全说明见 [SECURITY.md](SECURITY.md)。
+项目按 GNU GPL-2.0-only 发布，完整文本见 [LICENSE](LICENSE)。Mongoose 的上游许可说明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。贡献方式和安全说明分别见 [CONTRIBUTING.md](CONTRIBUTING.md) 与 [SECURITY.md](SECURITY.md)。
