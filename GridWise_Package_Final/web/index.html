@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#21384d">
+  <title>社区用电分析平台</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <section class="login-screen" id="login-screen">
+    <div class="login-brand"><span class="brand-mark">⚡</span><span><strong>GRIDWISE</strong><small>社区用电分析平台</small></span></div>
+    <div class="login-layout">
+      <div class="login-intro">
+        <div class="eyebrow">COMMUNITY ENERGY MANAGEMENT</div>
+        <h1>以真实用电数据，<br>辅助扩容决策。</h1>
+        <p>统一查看小区用电记录、统计报表与扩容优先建议。</p>
+        <div class="login-points"><span>01　分时用电查询</span><span>02　统计图表与报表</span><span>03　扩容建议排序</span></div>
+        <div class="login-decoration" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      </div>
+      <form class="login-card" id="login-form">
+        <div class="login-card-head"><small>SECURE ACCESS</small><span class="service-state"><i class="status-dot" id="login-dot"></i><span id="login-status">正在连接服务</span></span></div>
+        <h2>登录工作台</h2>
+        <p>普通用户可以查询与分析，管理员可以维护记录。</p>
+        <label for="login-account">账号</label>
+        <input id="login-account" name="account" autocomplete="username" placeholder="请输入账号" required>
+        <label for="login-password">密码</label>
+        <input id="login-password" name="password" type="password" autocomplete="current-password" placeholder="请输入密码" required>
+        <div class="message" id="login-message" role="status"></div>
+        <button class="btn primary login-submit" id="login-submit" type="submit">登录并进入工作台 <span>→</span></button>
+        <div class="login-note">账号密码仅保存在当前页面内存中。</div>
+      </form>
+    </div>
+    <footer class="login-footer"><span>GRIDWISE · 社区用电数据分析</span><span>本地课程项目</span></footer>
+  </section>
+
+  <div class="app-shell hidden" id="app-shell">
+    <aside class="sidebar">
+      <a class="brand" data-open="overview"><span class="brand-mark">⚡</span><span><strong>GRIDWISE</strong><small>社区用电分析平台</small></span></a>
+      <div class="nav-title">工作空间</div>
+      <nav>
+        <button class="nav active" data-page="overview"><i>▦</i>数据总览</button>
+        <button class="nav auth-only" data-page="records"><i>⌕</i>用电查询</button>
+        <button class="nav auth-only" data-page="reports"><i>▤</i>统计报表</button>
+        <button class="nav auth-only" data-page="sorting"><i>↕</i>数据排序</button>
+        <button class="nav auth-only" data-page="recommend"><i>◎</i>扩容推荐</button>
+        <button class="nav admin-only hidden" data-page="entry"><i>＋</i>数据维护</button>
+      </nav>
+      <div class="sidefoot"><span class="side-status"><i class="status-dot" id="side-dot"></i><small id="side-status">服务状态检查中</small></span><button id="side-login">退出登录 ↗</button></div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar"><div class="mobile-brand">⚡ GRIDWISE</div><div class="crumb">社区用电分析　/　<b id="page-title">数据总览</b></div><span class="status" id="status">服务检查中</span><button class="btn quiet" id="top-login">退出登录</button></header>
+      <div class="content">
+        <section class="page active" data-view="overview">
+          <div class="title-row"><div><div class="eyebrow">ENERGY MANAGEMENT</div><h1>用电情况总览</h1><p class="sub">选择小区后查看实际用电统计与变化趋势。</p></div></div>
+          <div class="filters"><label class="filter-label" for="overview-query-community">小区</label><input id="overview-query-community" class="filter-input" placeholder="输入小区名称"><label class="filter-label" for="overview-query-year">年份</label><input id="overview-query-year" class="filter-input year-input" type="number" min="1" max="9999" placeholder="全部年份"><button class="btn primary" id="overview-load">读取数据</button></div>
+          <section class="metrics">
+            <article class="metric"><div class="metric-top"><span>用电记录</span><span class="metric-icon">▤</span></div><div class="metric-value" id="metric-records">—</div><div class="metric-foot" id="metric-records-note">选择小区后读取</div></article>
+            <article class="metric"><div class="metric-top"><span>总用电量</span><span class="metric-icon">ϟ</span></div><div class="metric-value"><span id="metric-kwh">—</span> <span class="metric-unit">kWh</span></div><div class="metric-foot">峰谷电量合计</div></article>
+            <article class="metric"><div class="metric-top"><span>电费合计</span><span class="metric-icon">￥</span></div><div class="metric-value">¥ <span id="metric-bill">—</span></div><div class="metric-foot">按当前筛选条件统计</div></article>
+            <article class="metric"><div class="metric-top"><span>覆盖住户</span><span class="metric-icon">⌂</span></div><div class="metric-value"><span id="metric-homes">—</span> <span class="metric-unit">户</span></div><div class="metric-foot">按住户名称去重</div></article>
+          </section>
+          <div class="overview-grid">
+            <article class="panel"><div class="panel-head"><div><h2>月度用电趋势</h2><p id="overview-chart-caption">读取数据后显示峰谷电量变化</p></div><div class="legend"><span><i class="legend-peak"></i>峰时</span><span><i class="legend-valley"></i>谷时</span></div></div><div class="chart overview-chart" id="overview-chart"><div class="empty-state">输入小区名称并读取数据后显示趋势图。</div></div></article>
+            <article class="panel quick-panel"><div class="panel-head"><div><h2>常用功能</h2><p>选择一个工作模块继续</p></div></div><div class="quick-links"><button data-open="records"><span>⌕</span><b>用电查询</b><small>按小区、住户和年月筛选</small><i>→</i></button><button data-open="reports"><span>▤</span><b>统计报表</b><small>查看图表和月度汇总</small><i>→</i></button><button data-open="recommend"><span>◎</span><b>扩容推荐</b><small>查看优先扩容建议名单</small><i>→</i></button></div></article>
+          </div>
+          <article class="panel table-panel"><div class="panel-head"><div><h2>最近查询记录</h2><p id="snapshot-note">读取数据后显示记录</p></div><button class="text-button" data-open="records">打开查询　→</button></div><div class="table-wrap"><table><thead><tr><th>小区 / 住户</th><th>年月</th><th>峰时电量</th><th>谷时电量</th><th>电费</th></tr></thead><tbody id="recent"><tr><td class="empty-cell" colspan="5">暂无数据</td></tr></tbody></table></div></article>
+        </section>
+
+        <section class="page" data-view="entry">
+          <div class="page-intro"><div class="eyebrow">DATA MANAGEMENT / ADMIN</div><h1>数据维护</h1><p>新增或修改记录时，电费由后端按照当前峰谷电价计算。</p></div>
+          <article class="panel form-panel"><div class="panel-head"><div><h2 id="entry-title">新增用电记录</h2><p>每户每月对应一条记录</p></div><span class="badge">管理员</span></div><div class="fields"><label>小区名称 *<input id="f-community" autocomplete="off"></label><label>住户名称 / 编号 *<input id="f-household" autocomplete="off"></label><label>年份 *<input id="f-year" type="number" min="1" max="9999"></label><label>月份 *<input id="f-month" type="number" min="1" max="12"></label><label>峰时电量 · kWh *<input id="f-peak" type="number" min="0" step=".01"></label><label>谷时电量 · kWh *<input id="f-valley" type="number" min="0" step=".01"></label></div><div class="form-actions"><button class="btn quiet hidden" id="cancel-edit">取消修改</button><button class="btn primary" id="save-entry">保存记录</button></div><div class="message" id="entry-message"></div></article>
+        </section>
+
+        <section class="page" data-view="records">
+          <div class="page-intro"><div class="eyebrow">RECORDS / SEARCH</div><h1>用电查询</h1><p>小区必填；住户、年份、月份可以组合筛选。</p></div>
+          <article class="panel filter-panel"><div class="filter-grid"><label>小区名称 *<input id="q-community"></label><label>住户<input id="q-household"></label><label>年份<input id="q-year" type="number"></label><label>月份<input id="q-month" type="number" min="1" max="12"></label><button class="btn primary" id="query-btn">查询记录</button></div><div class="message" id="query-message"></div></article>
+          <article class="panel table-panel"><div class="panel-head"><div><h2>查询结果</h2><p id="result-count">尚未查询</p></div></div><div class="table-wrap"><table><thead><tr><th>小区</th><th>住户</th><th>年份</th><th>月份</th><th>峰时 kWh</th><th>谷时 kWh</th><th>电费</th><th class="admin-col">操作</th></tr></thead><tbody id="records"><tr><td class="empty-cell" colspan="8">填写小区名称后查询。</td></tr></tbody></table></div><div class="pager"><button class="btn quiet" id="prev" disabled>← 上一页</button><b id="page-no">第 1 页</b><button class="btn quiet" id="next" disabled>下一页 →</button></div></article>
+        </section>
+
+        <section class="page" data-view="reports">
+          <div class="page-intro"><div class="eyebrow">INSIGHTS / REPORTS</div><h1>统计报表</h1><p>按现有记录接口读取数据，在页面汇总月度电量、电费和户均值。</p></div>
+          <article class="panel filter-panel"><div class="filter-grid report-filter"><label>小区名称 *<input id="report-community"></label><label>年份（可选）<input id="report-year" type="number"></label><button class="btn primary" id="report-btn">生成报表</button></div><div class="message" id="report-message"></div></article>
+          <section class="metrics report-metrics"><article class="metric"><div class="metric-top"><span>峰时用电</span><span class="metric-icon">ϟ</span></div><div class="metric-value"><span id="r-peak">—</span> <span class="metric-unit">kWh</span></div></article><article class="metric"><div class="metric-top"><span>谷时用电</span><span class="metric-icon">ϟ</span></div><div class="metric-value"><span id="r-valley">—</span> <span class="metric-unit">kWh</span></div></article><article class="metric"><div class="metric-top"><span>电费合计</span><span class="metric-icon">￥</span></div><div class="metric-value">¥ <span id="r-bill">—</span></div></article><article class="metric"><div class="metric-top"><span>平均每户电费</span><span class="metric-icon">⌂</span></div><div class="metric-value">¥ <span id="r-average">—</span></div></article></section>
+          <article class="panel report-chart-panel"><div class="panel-head chart-heading"><div><h2>月度统计图</h2><p id="chart-caption">生成报表后选择图表形式</p></div><div class="chart-switch" role="group" aria-label="选择统计图类型"><button class="active" data-chart-type="line">折线</button><button data-chart-type="bar">柱状</button><button data-chart-type="pie">峰谷占比</button><button data-chart-type="table">表格</button></div></div><div class="chart report-chart" id="chart"><div class="empty-state">填写小区并生成报表后显示统计图。</div></div></article>
+          <article class="panel table-panel report-table-panel"><div class="panel-head"><div><h2>月度汇总表</h2><p>按月份列出峰谷用电、电费和户均指标</p></div></div><div class="table-wrap"><table><thead><tr><th>年月</th><th>户数</th><th>峰时</th><th>谷时</th><th>总电量</th><th>电费</th><th>户均电量</th><th>户均电费</th></tr></thead><tbody id="report-rows"><tr><td class="empty-cell" colspan="8">等待报表数据。</td></tr></tbody></table></div></article>
+        </section>
+
+        <section class="page" data-view="sorting">
+          <div class="page-intro"><div class="eyebrow">ANALYSIS / SORTING</div><h1>数据排序</h1><p>按月度统计指标排序，比较小区不同月份的用电和费用。</p></div>
+          <article class="panel filter-panel"><div class="filter-grid sort-filter"><label>小区名称 *<input id="sort-community"></label><label>年份（可选）<input id="sort-year" type="number"></label><label>排序指标<select id="sort-metric"><option value="total">峰谷总电量</option><option value="peak">峰时电量</option><option value="valley">谷时电量</option><option value="bill">月总电费</option><option value="avgKwh">户均电量</option><option value="avgBill">户均电费</option></select></label><button class="btn primary" id="sort-btn">排序</button></div><div class="message" id="sort-message"></div></article>
+          <article class="panel table-panel"><div class="panel-head"><div><h2>排序结果</h2><p id="sort-count">等待排序</p></div></div><div class="table-wrap"><table><thead><tr><th>排名</th><th>年月</th><th>户数</th><th>峰时</th><th>谷时</th><th>总电量</th><th>电费</th><th>户均电量</th><th>户均电费</th></tr></thead><tbody id="sort-rows"><tr><td class="empty-cell" colspan="9">选择小区后开始排序。</td></tr></tbody></table></div></article>
+          <p class="footnote">排序在前端依据现有记录查询结果完成；C 端排序接口可后续接入。</p>
+        </section>
+
+        <section class="page" data-view="recommend">
+          <div class="page-intro"><div class="eyebrow">PLANNING / RECOMMENDATION</div><h1>扩容推荐</h1><p>综合最近两年峰电变化、峰谷结构和户均峰电，按熵权法生成优先级。</p></div>
+          <div class="recommend-layout"><article class="panel demand-panel"><div class="panel-head"><div><h2>推荐条件</h2><p>按当前系统数据生成建议名单</p></div><span class="badge gold">算法已接入</span></div><div class="fields single-fields"><label>计划扩容小区数量<input id="demand-count" type="number" min="0" placeholder="0 表示不限"></label><label>近两年最低总电费 · 元<input id="demand-bill" type="number" min="0" step=".01" placeholder="0 表示不限"></label></div><button class="btn primary" id="recommend-btn">生成推荐名单</button><div class="message info" id="recommend-message">推荐结果供工作人员参考。</div></article><article class="panel table-panel"><div class="panel-head"><div><h2>优先扩容建议名单</h2><p>按综合优先分从高到低排列</p></div></div><div class="table-wrap"><table><thead><tr><th>排名</th><th>小区</th><th>统计周期</th><th>峰时总量</th><th>谷时总量</th><th>总电费</th><th>户数</th><th>户均电量</th><th>户均电费</th><th>优先分</th></tr></thead><tbody id="recommend-rows"><tr><td class="empty-cell" colspan="10">设置条件后生成推荐名单。</td></tr></tbody></table></div></article></div>
+          <p class="footnote">候选小区按四项用电指标归一化后计算熵权分。最终扩容决策还需结合现场勘查与工程条件。</p>
+        </section>
+        <footer class="app-footer"><span>GRIDWISE · 社区用电分析平台</span><span>数据仅用于分析参考</span></footer>
+      </div>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status"></div>
+  <script src="app.js"></script>
+</body>
+</html>
